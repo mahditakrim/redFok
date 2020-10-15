@@ -18,7 +18,7 @@ func main() {
 		utility.LogError("CreateDBConnection", err, true)
 	}
 
-	controller := handler.InitController(*db)
+	controller := handler.InitNewController(*db)
 	mux := http.NewServeMux()
 	gate := &processGate{isGateOpen: true}
 	go func() { gate.dbConnWatcher(controller) }()
