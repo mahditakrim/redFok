@@ -1,15 +1,12 @@
-package handler
+package main
 
 import (
 	"encoding/json"
-	"github.com/mahditakrim/redFok/server/dataType"
-	"github.com/mahditakrim/redFok/server/database"
-	"github.com/mahditakrim/redFok/server/utility"
 	"golang.org/x/net/websocket"
 	"strings"
 )
 
-func (c *Controller) Messenger(conn *websocket.Conn) {
+func (c *controller) messenger(conn *websocket.Conn) {
 
 	userName := c.checkAuthentication(conn)
 	if userName == "" || c.checkIsClientOnline(userName) {
@@ -19,17 +16,17 @@ func (c *Controller) Messenger(conn *websocket.Conn) {
 
 	c.addOnlineClient(conn, userName)
 
-	err := responseSender(conn, dataType.Approve)
+	err := responseSender(conn, approve)
 	if err != nil {
-		utility.LogError("messenger-responseSender", err, false)
+		logError("messenger-responseSender", err, false)
 		c.removeAndCloseOnlineClient(conn, userName)
 		return
 	}
 
 	ip := conn.Request().RemoteAddr[:strings.IndexByte(conn.Request().RemoteAddr, ':')]
-	err = c.DbConn.ChangeIP(userName, ip)
+	err = c.dbConn.changeIP(userName, ip)
 	if err != nil {
-		utility.LogError("messenger-ChangeIP", err, false)
+		logError("messenger-changeIP", err, false)
 		c.removeAndCloseOnlineClient(conn, userName)
 		return
 	}
@@ -37,18 +34,18 @@ func (c *Controller) Messenger(conn *websocket.Conn) {
 	messages := c.checkUnseenMessages(userName, conn)
 	if messages != nil {
 		for _, message := range messages {
-			err := c.DbConn.DeleteMessage("tbl_"+userName, message)
+			err := c.dbConn.deleteMessage("tbl_"+userName, message)
 			if err != nil {
-				utility.LogError("messenger-DeleteMessage", err, false)
+				logError("messenger-deleteMessage", err, false)
 				c.removeAndCloseOnlineClient(conn, userName)
 				return
 			}
 
-			go func(message database.MessageData) {
-				c.deliverMessage(conn, userName, dataType.ClientReceiveMessage{
-					TimeStamp: message.TimeStamp,
-					Text:      message.Text,
-					Sender:    message.Sender,
+			go func(message messageData) {
+				c.deliverMessage(conn, userName, clientReceiveMessage{
+					TimeStamp: message.timeStamp,
+					Text:      message.text,
+					Sender:    message.sender,
 				})
 			}(message)
 		}
@@ -57,22 +54,22 @@ func (c *Controller) Messenger(conn *websocket.Conn) {
 	c.runReceiver(conn, userName)
 }
 
-func (c *Controller) runReceiver(conn *websocket.Conn, userName string) {
+func (c *controller) runReceiver(conn *websocket.Conn, userName string) {
 
 	for {
 		var data []byte
 		err := websocket.Message.Receive(conn, &data)
 		if err != nil {
 			if c.checkIsClientOnline(userName) {
-				utility.LogError("runReceiver-Receive", err, false)
+				logError("runReceiver-Receive", err, false)
 				c.removeAndCloseOnlineClient(conn, userName)
 			}
 			return
 		}
-		var message dataType.ClientSendMessage
+		var message clientSendMessage
 		err = json.Unmarshal(data, &message)
 		if err != nil {
-			utility.LogError("runReceiver-Unmarshal", err, false)
+			logError("runReceiver-Unmarshal", err, false)
 			c.removeAndCloseOnlineClient(conn, userName)
 			return
 		}
@@ -81,7 +78,7 @@ func (c *Controller) runReceiver(conn *websocket.Conn, userName string) {
 	}
 }
 
-func messageValidator(message *dataType.ClientSendMessage) bool {
+func messageValidator(message *clientSendMessage) bool {
 
 	if message.Sender == "" || message.TimeStamp.String() == "" ||
 		message.To == nil {
@@ -102,7 +99,7 @@ func messageValidator(message *dataType.ClientSendMessage) bool {
 	return true
 }
 
-func (c *Controller) messageHandler(message dataType.ClientSendMessage, conn *websocket.Conn) {
+func (c *controller) messageHandler(message clientSendMessage, conn *websocket.Conn) {
 
 	if !messageValidator(&message) {
 		return
@@ -117,17 +114,17 @@ func (c *Controller) messageHandler(message dataType.ClientSendMessage, conn *we
 
 	for _, user := range message.To {
 
-		isClientExist, err := c.DbConn.CheckClientUserName(user)
+		isClientExist, err := c.dbConn.checkClientUserName(user)
 		if err != nil {
-			utility.LogError("messageHandler-CheckClientUserName", err, false)
+			logError("messageHandler-checkClientUserName", err, false)
 			c.removeAndCloseOnlineClient(conn, message.Sender)
 			return
 		}
 		if !isClientExist {
 			if c.checkIsClientOnline(message.Sender) {
-				err = responseSender(conn, dataType.NoSuchUser)
+				err = responseSender(conn, noSuchUser)
 				if err != nil {
-					utility.LogError("messageHandler-responseSender", err, false)
+					logError("messageHandler-responseSender", err, false)
 					c.removeAndCloseOnlineClient(conn, message.Sender)
 				}
 			}
@@ -137,59 +134,59 @@ func (c *Controller) messageHandler(message dataType.ClientSendMessage, conn *we
 
 		go func(user string) {
 			if c.checkIsClientOnline(user) {
-				c.deliverMessage(c.onlineClients[user], user, dataType.ClientReceiveMessage{
+				c.deliverMessage(c.onlineClients[user], user, clientReceiveMessage{
 					TimeStamp: message.TimeStamp,
 					Text:      message.Text,
 					Sender:    message.Sender,
 				})
 
 			} else {
-				err := c.DbConn.InsertMessage("tbl_"+user, database.MessageData{
-					TimeStamp: message.TimeStamp,
-					Text:      message.Text,
-					Sender:    message.Sender,
+				err := c.dbConn.insertMessage("tbl_"+user, messageData{
+					timeStamp: message.TimeStamp,
+					text:      message.Text,
+					sender:    message.Sender,
 				})
 				if err != nil {
-					utility.LogError("messageHandler-InsertMessage", err, false)
+					logError("messageHandler-insertMessage", err, false)
 					c.removeAndCloseOnlineClient(conn, message.Sender)
 				}
 			}
 		}(user)
 
 		if c.checkIsClientOnline(message.Sender) {
-			err = responseSender(conn, dataType.Received)
+			err = responseSender(conn, received)
 			if err != nil {
-				utility.LogError("messageHandler-responseSender", err, false)
+				logError("messageHandler-responseSender", err, false)
 				c.removeAndCloseOnlineClient(conn, message.Sender)
 			}
 		}
 	}
 }
 
-func (c *Controller) deliverMessage(conn *websocket.Conn, userName string, message dataType.ClientReceiveMessage) {
+func (c *controller) deliverMessage(conn *websocket.Conn, userName string, message clientReceiveMessage) {
 
 	err := websocket.JSON.Send(conn, message)
 	if err != nil {
-		err := c.DbConn.InsertMessage("tbl_"+userName, database.MessageData{
-			TimeStamp: message.TimeStamp,
-			Text:      message.Text,
-			Sender:    message.Sender,
+		err := c.dbConn.insertMessage("tbl_"+userName, messageData{
+			timeStamp: message.TimeStamp,
+			text:      message.Text,
+			sender:    message.Sender,
 		})
 		if err != nil {
-			utility.LogError("deliverMessage-InsertMessage", err, false)
+			logError("deliverMessage-insertMessage", err, false)
 		}
 
 		c.removeAndCloseOnlineClient(conn, userName)
 
-		utility.LogError("deliverMessage", err, false)
+		logError("deliverMessage", err, false)
 	}
 }
 
-func (c *Controller) checkUnseenMessages(userName string, conn *websocket.Conn) []database.MessageData {
+func (c *controller) checkUnseenMessages(userName string, conn *websocket.Conn) []messageData {
 
-	messages, err := c.DbConn.GetMessages("tbl_" + userName)
+	messages, err := c.dbConn.getMessages("tbl_" + userName)
 	if err != nil {
-		utility.LogError("checkUnseenMessages", err, false)
+		logError("checkUnseenMessages", err, false)
 		c.removeAndCloseOnlineClient(conn, userName)
 		return nil
 	}

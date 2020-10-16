@@ -1,4 +1,4 @@
-package handler
+package main
 
 import (
 	"bytes"
@@ -6,26 +6,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-sql-driver/mysql"
-	"github.com/mahditakrim/redFok/server/dataType"
-	"github.com/mahditakrim/redFok/server/database"
-	"github.com/mahditakrim/redFok/server/utility"
 	"golang.org/x/net/websocket"
 	"strings"
 )
 
-func (c *Controller) Register(conn *websocket.Conn) {
+func (c *controller) register(conn *websocket.Conn) {
 
 	var data []byte
 	err := websocket.Message.Receive(conn, &data)
 	if err != nil {
-		utility.LogError("register-Receive", err, false)
+		logError("register-Receive", err, false)
 		_ = conn.Close()
 		return
 	}
-	var reg dataType.Registration
+	var reg registration
 	err = json.Unmarshal(data, &reg)
 	if err != nil {
-		utility.LogError("register-Unmarshal", err, false)
+		logError("register-Unmarshal", err, false)
 		_ = conn.Close()
 		return
 	}
@@ -35,32 +32,32 @@ func (c *Controller) Register(conn *websocket.Conn) {
 		return
 	}
 
-	isClientExist, err := c.DbConn.CheckClientID(reg.ClientID)
+	isClientExist, err := c.dbConn.checkClientID(reg.ClientID)
 	if err != nil {
-		utility.LogError("register-CheckClientID", err, false)
+		logError("register-checkClientID", err, false)
 		_ = conn.Close()
 		return
 	}
 	if isClientExist {
-		err := responseSender(conn, dataType.AlreadyReg)
+		err := responseSender(conn, alreadyReg)
 		if err != nil {
-			utility.LogError("register-responseSender", err, false)
+			logError("register-responseSender", err, false)
 		}
 
 		_ = conn.Close()
 		return
 	}
 
-	isUserNameInValid, err := c.DbConn.CheckClientUserName(reg.UserName)
+	isUserNameInValid, err := c.dbConn.checkClientUserName(reg.UserName)
 	if err != nil {
-		utility.LogError("register-CheckClientUserName", err, false)
+		logError("register-checkClientUserName", err, false)
 		_ = conn.Close()
 		return
 	}
 	if isUserNameInValid {
-		err = responseSender(conn, dataType.InvalidUserName)
+		err = responseSender(conn, invalidUserName)
 		if err != nil {
-			utility.LogError("register-responseSender", err, false)
+			logError("register-responseSender", err, false)
 		}
 
 		_ = conn.Close()
@@ -71,48 +68,48 @@ func (c *Controller) Register(conn *websocket.Conn) {
 	//All the methods in a process should be atomic and reversible if some error occurred
 
 	ip := conn.Request().RemoteAddr[:strings.IndexByte(conn.Request().RemoteAddr, ':')]
-	err = c.DbConn.InsertUser(database.UserData{
-		UserName: reg.UserName,
-		ClientID: reg.ClientID,
-		Name:     strings.TrimSpace(reg.Name),
-		IP:       ip,
+	err = c.dbConn.insertUser(userData{
+		userName: reg.UserName,
+		clientID: reg.ClientID,
+		name:     strings.TrimSpace(reg.Name),
+		ip:       ip,
 	})
 	if err != nil {
-		if err.(*mysql.MySQLError).Number == database.DuplicateErr {
-			err = responseSender(conn, dataType.InvalidUserName)
+		if err.(*mysql.MySQLError).Number == duplicateErr {
+			err = responseSender(conn, invalidUserName)
 			if err != nil {
-				utility.LogError("register-isDuplicateError-responseSender", err, false)
+				logError("register-isDuplicateError-responseSender", err, false)
 			}
 
 			_ = conn.Close()
 			return
 		}
 
-		utility.LogError("register-InsertUser", err, false)
+		logError("register-insertUser", err, false)
 		_ = conn.Close()
 		return
 	}
 
-	err = c.DbConn.CreateUserTable("tbl_" + reg.UserName)
+	err = c.dbConn.createUserTable("tbl_" + reg.UserName)
 	if err != nil {
-		utility.LogError("register-CreateUserTable", err, false)
+		logError("register-createUserTable", err, false)
 		_ = conn.Close()
 		return
 	}
 
-	err = responseSender(conn, dataType.Approve)
+	err = responseSender(conn, approve)
 	if err != nil {
-		utility.LogError("register-responseSender", err, false)
+		logError("register-responseSender", err, false)
 		_ = conn.Close()
 		return
 	}
 
-	go utility.Play()
+	go playBeep()
 	fmt.Println(reg.UserName + " registered")
 	_ = conn.Close()
 }
 
-func validateRegistration(reg dataType.Registration) bool {
+func validateRegistration(reg registration) bool {
 
 	emptyHash := sha1.New()
 	emptyHash.Write([]byte(""))

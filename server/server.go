@@ -2,9 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/mahditakrim/redFok/server/database"
-	"github.com/mahditakrim/redFok/server/handler"
-	"github.com/mahditakrim/redFok/server/utility"
 	"golang.org/x/net/websocket"
 	"net/http"
 )
@@ -13,12 +10,12 @@ func main() {
 
 	defer fmt.Println("Server stopped working!")
 
-	db, err := database.CreateDBConnection("mahdi:123@/redFokDB?parseTime=true")
+	db, err := createDBConnection("mahdi:123@/redFokDB?parseTime=true")
 	if err != nil || db == nil {
-		utility.LogError("CreateDBConnection", err, true)
+		logError("createDBConnection", err, true)
 	}
 
-	controller := handler.InitNewController(*db)
+	controller := initNewController(*db)
 	mux := http.NewServeMux()
 	gate := &processGate{isGateOpen: true}
 	go func() { gate.dbConnWatcher(controller) }()
@@ -30,7 +27,7 @@ func main() {
 				return
 			}
 
-			controller.Messenger(conn)
+			controller.messenger(conn)
 		}))
 
 	mux.Handle("/registration", websocket.Handler(
@@ -40,7 +37,7 @@ func main() {
 				return
 			}
 
-			controller.Register(conn)
+			controller.register(conn)
 		}))
 
 	mux.Handle("/deletion", websocket.Handler(
@@ -50,7 +47,7 @@ func main() {
 				return
 			}
 
-			controller.Deleter(conn)
+			controller.deleter(conn)
 		}))
 
 	server := http.Server{
@@ -61,6 +58,6 @@ func main() {
 	fmt.Println("Server is running . . .")
 	err = server.ListenAndServe()
 	if err != nil {
-		utility.LogError("ListenAndServe", err, true)
+		logError("ListenAndServe", err, true)
 	}
 }

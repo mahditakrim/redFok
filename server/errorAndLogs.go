@@ -1,4 +1,4 @@
-package utility
+package main
 
 import (
 	"fmt"
@@ -7,9 +7,9 @@ import (
 
 //We may want logging processes here . . .
 
-func LogError(scope string, err error, isSerious bool) {
+func logError(scope string, err error, isSerious bool) {
 
-	go Play()
+	go playBeep()
 
 	if isSerious {
 		log.Fatalln(scope, err)

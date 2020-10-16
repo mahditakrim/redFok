@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/mahditakrim/redFok/server/handler"
 	"os"
 	"sync"
 	"time"
@@ -13,12 +12,12 @@ type processGate struct {
 	isGateOpen bool
 }
 
-func (gate *processGate) dbConnWatcher(c *handler.Controller) {
+func (gate *processGate) dbConnWatcher(c *controller) {
 
 	for {
 		time.Sleep(time.Second * 5)
 
-		err := c.DbConn.Ping()
+		err := c.dbConn.ping()
 		if err != nil && disconnectVerifier(c) {
 			gate.locker.Lock()
 			gate.isGateOpen = false
@@ -32,10 +31,10 @@ func (gate *processGate) dbConnWatcher(c *handler.Controller) {
 	}
 }
 
-func disconnectVerifier(c *handler.Controller) bool {
+func disconnectVerifier(c *controller) bool {
 
 	for i := 0; i < 3; i++ {
-		err := c.DbConn.Ping()
+		err := c.dbConn.ping()
 		if err == nil {
 			return false
 		}
@@ -44,12 +43,12 @@ func disconnectVerifier(c *handler.Controller) bool {
 	return true
 }
 
-func waitToEmptyOnlineClients(c *handler.Controller) {
+func waitToEmptyOnlineClients(c *controller) {
 
 	for {
 		time.Sleep(time.Millisecond)
 
-		if c.OnlineClientsLen() == 0 {
+		if c.onlineClientsLen() == 0 {
 			return
 		}
 	}
