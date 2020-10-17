@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+// messenger is a controller pointer method that handles messaging process
+// it gets a websocket connection pointer and uses it as incoming user
 func (c *controller) messenger(conn *websocket.Conn) {
 
 	userName := c.checkAuthentication(conn)
@@ -54,6 +56,9 @@ func (c *controller) messenger(conn *websocket.Conn) {
 	c.runReceiver(conn, userName)
 }
 
+// runReceiver runs a websocket Receiver on the given conn
+// it gets a websocket connection pointer to listen and receive
+// it gets a userName which is the clients authorized userName
 func (c *controller) runReceiver(conn *websocket.Conn, userName string) {
 
 	for {
@@ -78,6 +83,9 @@ func (c *controller) runReceiver(conn *websocket.Conn, userName string) {
 	}
 }
 
+// messageValidator validates a clientSendMessage in terms of data appearance
+// it gets a clientSendMessage pointer for space trimming so the value will be change globally
+// it returns True if everything wend alright and False if not
 func messageValidator(message *clientSendMessage) bool {
 
 	if message.Sender == "" || message.TimeStamp.String() == "" ||
@@ -99,6 +107,9 @@ func messageValidator(message *clientSendMessage) bool {
 	return true
 }
 
+// messageHandler is a controller pointer method that handles every single clientSendMessage that runReceiver receives
+// it gets a clientSendMessage fro processing
+// it gets a websocket connection pointer as the user that has sent the message
 func (c *controller) messageHandler(message clientSendMessage, conn *websocket.Conn) {
 
 	if !messageValidator(&message) {
@@ -163,6 +174,8 @@ func (c *controller) messageHandler(message clientSendMessage, conn *websocket.C
 	}
 }
 
+// deliverMessage is a controller pointer method that delivers a clientReceiveMessage to the userName
+// it gets a websocket connection pointer and a userName as the users info for sending the message to
 func (c *controller) deliverMessage(conn *websocket.Conn, userName string, message clientReceiveMessage) {
 
 	err := websocket.JSON.Send(conn, message)
@@ -182,6 +195,10 @@ func (c *controller) deliverMessage(conn *websocket.Conn, userName string, messa
 	}
 }
 
+// checkUnseenMessages is a controller pointer method that checks whether userName has unseen messages
+// it gets a websocket connection pointer and a userName as user info to check
+// it returns a slice of messageData as the unseen messages
+// returns nil if there is no unseen message in the database
 func (c *controller) checkUnseenMessages(userName string, conn *websocket.Conn) []messageData {
 
 	messages, err := c.dbConn.getMessages("tbl_" + userName)

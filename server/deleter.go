@@ -5,7 +5,7 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-// deleter is a controller pointer method that handles user deletion
+// deleter is a controller pointer method that handles user deletion process
 // it gets a websocket connection pinter and uses it as the user connection that will be deleted
 func (c *controller) deleter(conn *websocket.Conn) {
 
