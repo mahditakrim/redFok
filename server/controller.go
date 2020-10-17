@@ -86,13 +86,13 @@ func (c *controller) checkAuthentication(conn *websocket.Conn) string {
 	var data []byte
 	err := websocket.Message.Receive(conn, &data)
 	if err != nil {
-		logError("checkAuthentication-Receive", err, false)
+		logError("checkAuthentication-Receive", err)
 		return ""
 	}
 	var auth authentication
 	err = json.Unmarshal(data, &auth)
 	if err != nil {
-		logError("checkAuthentication-Unmarshal", err, false)
+		logError("checkAuthentication-Unmarshal", err)
 		return ""
 	}
 
@@ -102,13 +102,13 @@ func (c *controller) checkAuthentication(conn *websocket.Conn) string {
 
 	isExisted, err := c.dbConn.checkClientID(auth.ClientID)
 	if err != nil {
-		logError("checkAuthentication-checkClientID", err, false)
+		logError("checkAuthentication-checkClientID", err)
 		return ""
 	}
 	if !isExisted {
 		err := responseSender(conn, invalidAuth)
 		if err != nil {
-			logError("checkAuthentication-isExisted", err, false)
+			logError("checkAuthentication-isExisted", err)
 		}
 
 		return ""
@@ -116,13 +116,13 @@ func (c *controller) checkAuthentication(conn *websocket.Conn) string {
 
 	result, err := c.dbConn.getUserNameByClientID(auth.ClientID)
 	if err != nil {
-		logError("checkAuthentication-getUserNameByClientID", err, false)
+		logError("checkAuthentication-getUserNameByClientID", err)
 		return ""
 	}
 	if result != auth.UserName {
 		err := responseSender(conn, invalidAuth)
 		if err != nil {
-			logError("checkAuthentication-responseSender", err, false)
+			logError("checkAuthentication-responseSender", err)
 		}
 
 		return ""

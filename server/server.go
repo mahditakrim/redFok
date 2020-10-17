@@ -14,7 +14,8 @@ func main() {
 
 	db, err := createDBConnection("mahdi:123@/redFokDB?parseTime=true")
 	if err != nil || db == nil {
-		logError("createDBConnection", err, true)
+		logError("createDBConnection", err)
+		return
 	}
 
 	controller := initNewController(*db)
@@ -60,6 +61,7 @@ func main() {
 	fmt.Println("Server is running . . .")
 	err = server.ListenAndServe()
 	if err != nil {
-		logError("ListenAndServe", err, true)
+		logError("ListenAndServe", err)
+		return
 	}
 }

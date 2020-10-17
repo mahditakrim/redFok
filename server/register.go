@@ -17,14 +17,14 @@ func (c *controller) register(conn *websocket.Conn) {
 	var data []byte
 	err := websocket.Message.Receive(conn, &data)
 	if err != nil {
-		logError("register-Receive", err, false)
+		logError("register-Receive", err)
 		_ = conn.Close()
 		return
 	}
 	var reg registration
 	err = json.Unmarshal(data, &reg)
 	if err != nil {
-		logError("register-Unmarshal", err, false)
+		logError("register-Unmarshal", err)
 		_ = conn.Close()
 		return
 	}
@@ -36,14 +36,14 @@ func (c *controller) register(conn *websocket.Conn) {
 
 	isClientExist, err := c.dbConn.checkClientID(reg.ClientID)
 	if err != nil {
-		logError("register-checkClientID", err, false)
+		logError("register-checkClientID", err)
 		_ = conn.Close()
 		return
 	}
 	if isClientExist {
 		err := responseSender(conn, alreadyReg)
 		if err != nil {
-			logError("register-responseSender", err, false)
+			logError("register-responseSender", err)
 		}
 
 		_ = conn.Close()
@@ -52,14 +52,14 @@ func (c *controller) register(conn *websocket.Conn) {
 
 	isUserNameInValid, err := c.dbConn.checkClientUserName(reg.UserName)
 	if err != nil {
-		logError("register-checkClientUserName", err, false)
+		logError("register-checkClientUserName", err)
 		_ = conn.Close()
 		return
 	}
 	if isUserNameInValid {
 		err = responseSender(conn, invalidUserName)
 		if err != nil {
-			logError("register-responseSender", err, false)
+			logError("register-responseSender", err)
 		}
 
 		_ = conn.Close()
@@ -80,28 +80,28 @@ func (c *controller) register(conn *websocket.Conn) {
 		if err.(*mysql.MySQLError).Number == duplicateErr {
 			err = responseSender(conn, invalidUserName)
 			if err != nil {
-				logError("register-isDuplicateError-responseSender", err, false)
+				logError("register-isDuplicateError-responseSender", err)
 			}
 
 			_ = conn.Close()
 			return
 		}
 
-		logError("register-insertUser", err, false)
+		logError("register-insertUser", err)
 		_ = conn.Close()
 		return
 	}
 
 	err = c.dbConn.createUserTable("tbl_" + reg.UserName)
 	if err != nil {
-		logError("register-createUserTable", err, false)
+		logError("register-createUserTable", err)
 		_ = conn.Close()
 		return
 	}
 
 	err = responseSender(conn, approve)
 	if err != nil {
-		logError("register-responseSender", err, false)
+		logError("register-responseSender", err)
 		_ = conn.Close()
 		return
 	}

@@ -17,14 +17,14 @@ func (c *controller) deleter(conn *websocket.Conn) {
 
 	err := c.dbConn.deleteUserAndTable(userName)
 	if err != nil {
-		logError("deleter-deleteUserAndTable", err, false)
+		logError("deleter-deleteUserAndTable", err)
 		c.removeAndCloseOnlineClient(conn, userName)
 		return
 	}
 
 	err = responseSender(conn, approve)
 	if err != nil {
-		logError("deleter-responseSender", err, false)
+		logError("deleter-responseSender", err)
 	}
 
 	c.removeAndCloseOnlineClient(conn, userName)

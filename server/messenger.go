@@ -20,7 +20,7 @@ func (c *controller) messenger(conn *websocket.Conn) {
 
 	err := responseSender(conn, approve)
 	if err != nil {
-		logError("messenger-responseSender", err, false)
+		logError("messenger-responseSender", err)
 		c.removeAndCloseOnlineClient(conn, userName)
 		return
 	}
@@ -28,7 +28,7 @@ func (c *controller) messenger(conn *websocket.Conn) {
 	ip := conn.Request().RemoteAddr[:strings.IndexByte(conn.Request().RemoteAddr, ':')]
 	err = c.dbConn.changeIP(userName, ip)
 	if err != nil {
-		logError("messenger-changeIP", err, false)
+		logError("messenger-changeIP", err)
 		c.removeAndCloseOnlineClient(conn, userName)
 		return
 	}
@@ -38,7 +38,7 @@ func (c *controller) messenger(conn *websocket.Conn) {
 		for _, message := range messages {
 			err := c.dbConn.deleteMessage("tbl_"+userName, message)
 			if err != nil {
-				logError("messenger-deleteMessage", err, false)
+				logError("messenger-deleteMessage", err)
 				c.removeAndCloseOnlineClient(conn, userName)
 				return
 			}
@@ -66,7 +66,7 @@ func (c *controller) runReceiver(conn *websocket.Conn, userName string) {
 		err := websocket.Message.Receive(conn, &data)
 		if err != nil {
 			if c.checkIsClientOnline(userName) {
-				logError("runReceiver-Receive", err, false)
+				logError("runReceiver-Receive", err)
 				c.removeAndCloseOnlineClient(conn, userName)
 			}
 			return
@@ -74,7 +74,7 @@ func (c *controller) runReceiver(conn *websocket.Conn, userName string) {
 		var message clientSendMessage
 		err = json.Unmarshal(data, &message)
 		if err != nil {
-			logError("runReceiver-Unmarshal", err, false)
+			logError("runReceiver-Unmarshal", err)
 			c.removeAndCloseOnlineClient(conn, userName)
 			return
 		}
@@ -127,7 +127,7 @@ func (c *controller) messageHandler(message clientSendMessage, conn *websocket.C
 
 		isClientExist, err := c.dbConn.checkClientUserName(user)
 		if err != nil {
-			logError("messageHandler-checkClientUserName", err, false)
+			logError("messageHandler-checkClientUserName", err)
 			c.removeAndCloseOnlineClient(conn, message.Sender)
 			return
 		}
@@ -135,7 +135,7 @@ func (c *controller) messageHandler(message clientSendMessage, conn *websocket.C
 			if c.checkIsClientOnline(message.Sender) {
 				err = responseSender(conn, noSuchUser)
 				if err != nil {
-					logError("messageHandler-responseSender", err, false)
+					logError("messageHandler-responseSender", err)
 					c.removeAndCloseOnlineClient(conn, message.Sender)
 				}
 			}
@@ -158,7 +158,7 @@ func (c *controller) messageHandler(message clientSendMessage, conn *websocket.C
 					sender:    message.Sender,
 				})
 				if err != nil {
-					logError("messageHandler-insertMessage", err, false)
+					logError("messageHandler-insertMessage", err)
 					c.removeAndCloseOnlineClient(conn, message.Sender)
 				}
 			}
@@ -167,7 +167,7 @@ func (c *controller) messageHandler(message clientSendMessage, conn *websocket.C
 		if c.checkIsClientOnline(message.Sender) {
 			err = responseSender(conn, received)
 			if err != nil {
-				logError("messageHandler-responseSender", err, false)
+				logError("messageHandler-responseSender", err)
 				c.removeAndCloseOnlineClient(conn, message.Sender)
 			}
 		}
@@ -186,12 +186,12 @@ func (c *controller) deliverMessage(conn *websocket.Conn, userName string, messa
 			sender:    message.Sender,
 		})
 		if err != nil {
-			logError("deliverMessage-insertMessage", err, false)
+			logError("deliverMessage-insertMessage", err)
 		}
 
 		c.removeAndCloseOnlineClient(conn, userName)
 
-		logError("deliverMessage", err, false)
+		logError("deliverMessage", err)
 	}
 }
 
@@ -203,7 +203,7 @@ func (c *controller) checkUnseenMessages(userName string, conn *websocket.Conn) 
 
 	messages, err := c.dbConn.getMessages("tbl_" + userName)
 	if err != nil {
-		logError("checkUnseenMessages", err, false)
+		logError("checkUnseenMessages", err)
 		c.removeAndCloseOnlineClient(conn, userName)
 		return nil
 	}
