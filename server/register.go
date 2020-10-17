@@ -120,8 +120,7 @@ func validateRegistration(reg registration) bool {
 	emptyHash.Write([]byte(""))
 	emptyClientID := emptyHash.Sum(nil)
 
-	if strings.TrimSpace(reg.Name) == "" ||
-		strings.TrimSpace(reg.UserName) == "" ||
+	if strings.TrimSpace(reg.UserName) == "" ||
 		reg.ClientID == nil ||
 		bytes.Compare(reg.ClientID, emptyClientID) == 0 {
 		return false
