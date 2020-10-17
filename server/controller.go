@@ -11,7 +11,7 @@ import (
 )
 
 // controller is the struct that we use to init our server for keeping online clients and the database connection
-// mapLock is the mutex we use to lock onlineClients map to prevent race problems
+// mapLock is the mutex that we use to lock onlineClients map to prevent race problems
 // onlineClients is the map we use to store online users's websocket connection and key of the map is client's userName
 // dbConn is the database connection holder we use to communicate with mysql database
 type controller struct {
