@@ -155,17 +155,31 @@ func (dbConn dbHandler) deleteMessage(table string, message messageData) error {
 	return nil
 }
 
-// insertUser inserts a userData into the database
+// insertUserAndCreateTable inserts a userData into the database and also creates a table with the given table name
 // returns error if something went wrong
-func (dbConn dbHandler) insertUser(user userData) error {
+func (dbConn dbHandler) insertUserAndCreateTable(user userData, table string) error {
 
-	_, err := dbConn.db.Exec("INSERT INTO tbl_users VALUE (?, ?, ?, ?)",
+	tx, err := dbConn.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec("INSERT INTO tbl_users VALUE (?, ?, ?, ?)",
 		user.userName, user.clientID, user.name, user.ip)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	_, err = tx.Exec("CREATE TABLE IF NOT EXISTS " + table +
+		" (timeStamp DATETIME NOT NULL," +
+		" text TEXT NOT NULL," +
+		" sender VARCHAR(50) NOT NULL)")
+	if err != nil {
+		_ = tx.Rollback() //this will return error so have to handle it
+		return err
+	}
+
+	return tx.Commit()
 }
 
 // changeIP changes the ip of the given userName by the given ip
@@ -181,42 +195,30 @@ func (dbConn dbHandler) changeIP(userName string, ip string) error {
 	return nil
 }
 
-// createUserTable creates a table with the given table name
-// if the given table is already existing then nothing happens
-// returns error if something went wrong
-func (dbConn dbHandler) createUserTable(table string) error {
-
-	_, err := dbConn.db.Exec("CREATE TABLE IF NOT EXISTS " + table +
-		" (timeStamp DATETIME NOT NULL," +
-		" text TEXT NOT NULL," +
-		" sender VARCHAR(50) NOT NULL)")
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // deleteUserAndTable deletes both user record from tbl_users and the table of user
 // this does it with two execution one by one
 // this should be an atomic job and do both executions at once
 // returns error if one of the executions went wrong
 func (dbConn dbHandler) deleteUserAndTable(user string) error {
 
-	//this should be atomic
+	tx, err := dbConn.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec("DELETE FROM tbl_users WHERE userName = ?", user)
+	if err != nil {
+		return err
+	}
 
 	table := "tbl_" + user
-	_, err := dbConn.db.Exec("DELETE FROM tbl_users WHERE userName = ?", user)
+	_, err = tx.Exec("DROP TABLE " + table)
 	if err != nil {
+		_ = tx.Rollback()
 		return err
 	}
 
-	_, err = dbConn.db.Exec("DROP TABLE " + table)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return tx.Commit()
 }
 
 // ping simply pings the mysql service provider and returns error if no answer

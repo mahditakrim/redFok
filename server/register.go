@@ -66,16 +66,13 @@ func (c *controller) register(conn *websocket.Conn) {
 		return
 	}
 
-	//This db methods should be atomic, maybe by SProc
-	//All the methods in a process should be atomic and reversible if some error occurred
-
-	ip := conn.Request().RemoteAddr[:strings.IndexByte(conn.Request().RemoteAddr, ':')]
-	err = c.dbConn.insertUser(userData{
+	userIP := conn.Request().RemoteAddr[:strings.IndexByte(conn.Request().RemoteAddr, ':')]
+	err = c.dbConn.insertUserAndCreateTable(userData{
 		userName: reg.UserName,
 		clientID: reg.ClientID,
 		name:     strings.TrimSpace(reg.Name),
-		ip:       ip,
-	})
+		ip:       userIP,
+	}, "tbl_"+reg.UserName)
 	if err != nil {
 		if err.(*mysql.MySQLError).Number == duplicateErr {
 			err = responseSender(conn, invalidUserName)
@@ -87,14 +84,7 @@ func (c *controller) register(conn *websocket.Conn) {
 			return
 		}
 
-		logError("register-insertUser", err)
-		_ = conn.Close()
-		return
-	}
-
-	err = c.dbConn.createUserTable("tbl_" + reg.UserName)
-	if err != nil {
-		logError("register-createUserTable", err)
+		logError("register-insertUserAndCreateTable", err)
 		_ = conn.Close()
 		return
 	}

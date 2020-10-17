@@ -109,7 +109,7 @@ func messageValidator(message *clientSendMessage) bool {
 
 // messageHandler is a controller pointer method that handles every single clientSendMessage that runReceiver receives
 // it gets a clientSendMessage fro processing
-// it gets a websocket connection pointer as the user that has sent the message
+// it gets a websocket connection pointer as the user who has sent the message
 func (c *controller) messageHandler(message clientSendMessage, conn *websocket.Conn) {
 
 	if !messageValidator(&message) {
@@ -124,7 +124,6 @@ func (c *controller) messageHandler(message clientSendMessage, conn *websocket.C
 	}
 
 	for _, user := range message.To {
-
 		isClientExist, err := c.dbConn.checkClientUserName(user)
 		if err != nil {
 			logError("messageHandler-checkClientUserName", err)
@@ -205,7 +204,6 @@ func (c *controller) checkUnseenMessages(userName string, conn *websocket.Conn) 
 	if err != nil {
 		logError("checkUnseenMessages", err)
 		c.removeAndCloseOnlineClient(conn, userName)
-		return nil
 	}
 
 	return messages

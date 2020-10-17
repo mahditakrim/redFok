@@ -17,6 +17,7 @@ func main() {
 		logError("createDBConnection", err)
 		return
 	}
+	defer func() { _ = db.db.Close() }()
 
 	controller := initNewController(*db)
 	mux := http.NewServeMux()
