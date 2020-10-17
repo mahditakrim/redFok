@@ -214,7 +214,7 @@ func (dbConn dbHandler) deleteUserAndTable(user string) error {
 	table := "tbl_" + user
 	_, err = tx.Exec("DROP TABLE " + table)
 	if err != nil {
-		_ = tx.Rollback()
+		_ = tx.Rollback() //this will return error so have to handle it
 		return err
 	}
 
