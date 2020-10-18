@@ -89,7 +89,7 @@ func (c *controller) register(conn *websocket.Conn) {
 		return
 	}
 
-	err = responseSender(conn, approve)
+	err = responseSender(conn, approved)
 	if err != nil {
 		logError("register-responseSender", err)
 		_ = conn.Close()

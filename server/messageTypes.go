@@ -5,14 +5,14 @@ import "time"
 // these are the flags that we use to send server responses
 // the values contains three digits of the flag name
 // received is the flag that server uses to response to clients saying that we processed your message successfully
-// approve is the flag that server uses to response to clients saying that your operation processed successfully
+// approved is the flag that server uses to response to clients saying that your operation processed successfully
 // invalidUserName is the flag that server uses to response to clients saying that username is not valid to be save in database
 // noSuchUser is the flag that server uses to response to clients saying that the username you want to send message to it, is not existing in database
 // alreadyReg is the flag that server uses to response to clients saying that the ClientID is already existing in database
 // invalidAuth is the flag that server uses to response to clients saying that authentication is not valid
 const (
 	received        = "RCV"
-	approve         = "APV"
+	approved        = "APV"
 	invalidUserName = "IUN"
 	noSuchUser      = "NSU"
 	alreadyReg      = "ART"

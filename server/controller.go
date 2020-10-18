@@ -10,13 +10,19 @@ import (
 	"sync"
 )
 
-// controller is the struct that we use to init our server for keeping online clients and the database connection
+// onlineClient is the struct that we use to keep online clients map with its mutex together
 // mapLock is the mutex that we use to lock onlineClients map to prevent race problems
-// onlineClients is the map we use to store online users's websocket connection and key of the map is client's userName
+// clients is the map we use to store online users's websocket connection and key of the map is client's userName
+type onlineClient struct {
+	mapLock sync.Mutex
+	clients map[string]*websocket.Conn
+}
+
+// controller is the struct that we use to init our server for keeping online clients and the database connection
+// onlineClients is the struct that we use to keep online clients map with its mutex together
 // dbConn is the database connection holder we use to communicate with mysql database
 type controller struct {
-	mapLock       sync.Mutex
-	onlineClients map[string]*websocket.Conn
+	onlineClients onlineClient
 	dbConn        dbHandler
 }
 
@@ -25,7 +31,7 @@ type controller struct {
 func initNewController(db dbHandler) *controller {
 
 	return &controller{
-		onlineClients: make(map[string]*websocket.Conn),
+		onlineClients: onlineClient{clients: make(map[string]*websocket.Conn)},
 		dbConn:        db,
 	}
 }
@@ -34,11 +40,11 @@ func initNewController(db dbHandler) *controller {
 // it gets user's websocket connection and the userName as the key for the map
 func (c *controller) addOnlineClient(conn *websocket.Conn, userName string) {
 
-	c.mapLock.Lock()
-	defer c.mapLock.Unlock()
-	c.onlineClients[userName] = conn
+	c.onlineClients.mapLock.Lock()
+	defer c.onlineClients.mapLock.Unlock()
+	c.onlineClients.clients[userName] = conn
 	go playBeep()
-	fmt.Println("online clients = ", len(c.onlineClients))
+	fmt.Println("online clients = ", len(c.onlineClients.clients))
 }
 
 // removeAndCloseOnlineClient is a controller method that removes and also closes the client from onlineClients map
@@ -46,11 +52,11 @@ func (c *controller) addOnlineClient(conn *websocket.Conn, userName string) {
 // it gets a websocket connection for closing and the userName as the key for delete
 func (c *controller) removeAndCloseOnlineClient(conn *websocket.Conn, userName string) {
 
-	c.mapLock.Lock()
-	defer c.mapLock.Unlock()
-	delete(c.onlineClients, userName)
+	c.onlineClients.mapLock.Lock()
+	defer c.onlineClients.mapLock.Unlock()
+	delete(c.onlineClients.clients, userName)
 	_ = conn.Close()
-	fmt.Println("online clients = ", len(c.onlineClients))
+	fmt.Println("online clients = ", len(c.onlineClients.clients))
 }
 
 // validateAuthentication validates an authentication in terms of data appearance
@@ -136,9 +142,9 @@ func (c *controller) checkAuthentication(conn *websocket.Conn) string {
 // it returns True if the userName is in map and returns False if not
 func (c *controller) checkIsClientOnline(userName string) bool {
 
-	c.mapLock.Lock()
-	defer c.mapLock.Unlock()
-	_, ok := c.onlineClients[userName]
+	c.onlineClients.mapLock.Lock()
+	defer c.onlineClients.mapLock.Unlock()
+	_, ok := c.onlineClients.clients[userName]
 	return ok
 }
 
@@ -161,7 +167,7 @@ func responseSender(conn *websocket.Conn, flag string) error {
 // and because of using mutex the returned value is accurate
 func (c *controller) onlineClientsLen() int {
 
-	c.mapLock.Lock()
-	defer c.mapLock.Unlock()
-	return len(c.onlineClients)
+	c.onlineClients.mapLock.Lock()
+	defer c.onlineClients.mapLock.Unlock()
+	return len(c.onlineClients.clients)
 }

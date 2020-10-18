@@ -175,7 +175,7 @@ func (dbConn dbHandler) insertUserAndCreateTable(user userData, table string) er
 		" text TEXT NOT NULL," +
 		" sender VARCHAR(50) NOT NULL)")
 	if err != nil {
-		_ = tx.Rollback() //this will return error so have to handle it
+		_ = tx.Rollback() //this will return error so we have to handle it
 		return err
 	}
 
@@ -214,7 +214,7 @@ func (dbConn dbHandler) deleteUserAndTable(user string) error {
 	table := "tbl_" + user
 	_, err = tx.Exec("DROP TABLE " + table)
 	if err != nil {
-		_ = tx.Rollback() //this will return error so have to handle it
+		_ = tx.Rollback() //this will return error so we have to handle it
 		return err
 	}
 

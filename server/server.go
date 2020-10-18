@@ -12,14 +12,14 @@ func main() {
 
 	defer fmt.Println("Server stopped working!")
 
-	db, err := createDBConnection("mahdi:123@/redFokDB?parseTime=true")
-	if err != nil || db == nil {
+	dbConn, err := createDBConnection("mahdi:123@/redFokDB?parseTime=true")
+	if err != nil || dbConn == nil {
 		logError("createDBConnection", err)
 		return
 	}
-	defer func() { _ = db.db.Close() }()
+	defer func() { _ = dbConn.db.Close() }()
 
-	controller := initNewController(*db)
+	controller := initNewController(*dbConn)
 	mux := http.NewServeMux()
 	gate := &processGate{isGateOpen: true}
 	go func() { gate.dbConnWatcher(controller) }()

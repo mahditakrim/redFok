@@ -18,7 +18,7 @@ func (c *controller) messenger(conn *websocket.Conn) {
 
 	c.addOnlineClient(conn, userName)
 
-	err := responseSender(conn, approve)
+	err := responseSender(conn, approved)
 	if err != nil {
 		logError("messenger-responseSender", err)
 		c.removeAndCloseOnlineClient(conn, userName)
@@ -144,7 +144,7 @@ func (c *controller) messageHandler(message clientSendMessage, conn *websocket.C
 
 		go func(user string) {
 			if c.checkIsClientOnline(user) {
-				c.deliverMessage(c.onlineClients[user], user, clientReceiveMessage{
+				c.deliverMessage(c.onlineClients.clients[user], user, clientReceiveMessage{
 					TimeStamp: message.TimeStamp,
 					Text:      message.Text,
 					Sender:    message.Sender,

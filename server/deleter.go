@@ -22,7 +22,7 @@ func (c *controller) deleter(conn *websocket.Conn) {
 		return
 	}
 
-	err = responseSender(conn, approve)
+	err = responseSender(conn, approved)
 	if err != nil {
 		logError("deleter-responseSender", err)
 	}
