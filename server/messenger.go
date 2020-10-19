@@ -142,7 +142,7 @@ func (c *controller) messageHandler(message clientSendMessage, conn *websocket.C
 			continue
 		}
 
-		go func() {
+		go func(user string) {
 			if c.checkIsClientOnline(user) {
 				c.deliverMessage(c.onlineClients.clients[user], user, clientReceiveMessage{
 					TimeStamp: message.TimeStamp,
@@ -161,7 +161,7 @@ func (c *controller) messageHandler(message clientSendMessage, conn *websocket.C
 					c.removeAndCloseOnlineClient(conn, userName)
 				}
 			}
-		}()
+		}(user)
 
 		if c.checkIsClientOnline(userName) {
 			err = responseSender(conn, received)
