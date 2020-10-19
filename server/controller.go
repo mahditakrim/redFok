@@ -137,17 +137,6 @@ func (c *controller) checkAuthentication(conn *websocket.Conn) string {
 	return result
 }
 
-// checkIsClientOnline is a controller method that checks whether a client is in onlineClients map or not.
-// it gets client's userName as the map key.
-// it returns True if the userName is in map and returns False if not.
-func (c *controller) checkIsClientOnline(userName string) bool {
-
-	c.onlineClients.mapLock.Lock()
-	defer c.onlineClients.mapLock.Unlock()
-	_, ok := c.onlineClients.clients[userName]
-	return ok
-}
-
 // responseSender sends server responses to the clients with the specific response flag.
 // it gets a websocket connection for sending and the flag as the response flag.
 // returns error if something went wrong.
@@ -170,4 +159,26 @@ func (c *controller) onlineClientsLen() int {
 	c.onlineClients.mapLock.Lock()
 	defer c.onlineClients.mapLock.Unlock()
 	return len(c.onlineClients.clients)
+}
+
+// checkIsClientOnline is a controller method that checks whether a client is in onlineClients map or not.
+// it gets client's userName as the map key.
+// it returns True if the userName is in map and returns False if not.
+func (c *controller) checkIsClientOnline(userName string) bool {
+
+	c.onlineClients.mapLock.Lock()
+	defer c.onlineClients.mapLock.Unlock()
+	_, ok := c.onlineClients.clients[userName]
+	return ok
+}
+
+// getWebsocketConnection gets the websocket connection pinter from onlineClients map.
+// it gets the userName as the key of the map.
+// it returns the websocket connection pointer as the map's value.
+func (c *controller) getWebsocketConnection(userName string) *websocket.Conn {
+
+	c.onlineClients.mapLock.Lock()
+	defer c.onlineClients.mapLock.Unlock()
+	wc, _ := c.onlineClients.clients[userName]
+	return wc
 }

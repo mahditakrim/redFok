@@ -44,7 +44,7 @@ func (c *controller) messenger(conn *websocket.Conn) {
 			}
 
 			go func(message messageData) {
-				c.deliverMessage(conn, userName, clientReceiveMessage{
+				c.deliverMessage(userName, clientReceiveMessage{
 					TimeStamp: message.timeStamp,
 					Text:      message.text,
 					Sender:    message.sender,
@@ -144,7 +144,7 @@ func (c *controller) messageHandler(message clientSendMessage, conn *websocket.C
 
 		go func(user string) {
 			if c.checkIsClientOnline(user) {
-				c.deliverMessage(c.onlineClients.clients[user], user, clientReceiveMessage{
+				c.deliverMessage(user, clientReceiveMessage{
 					TimeStamp: message.TimeStamp,
 					Text:      message.Text,
 					Sender:    userName,
@@ -175,8 +175,9 @@ func (c *controller) messageHandler(message clientSendMessage, conn *websocket.C
 
 // deliverMessage is a controller pointer method that delivers a clientReceiveMessage to the userName.
 // it gets a websocket connection pointer and a userName as the users info for sending the message to.
-func (c *controller) deliverMessage(conn *websocket.Conn, userName string, message clientReceiveMessage) {
+func (c *controller) deliverMessage(userName string, message clientReceiveMessage) {
 
+	conn := c.getWebsocketConnection(userName)
 	err := websocket.JSON.Send(conn, message)
 	if err != nil {
 		err := c.dbConn.insertMessage("tbl_"+userName, messageData{
