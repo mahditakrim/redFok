@@ -6,30 +6,31 @@ import (
 	"time"
 )
 
-// duplicateErr is the error code of mysql for inserting duplicate value to the database
-// this error can be produced when you have 'UNIQUE' fields
+// duplicateErr is the error code of mysql for inserting duplicate value to the database.
+// this error can be produced when you have 'UNIQUE' fields.
 const duplicateErr = 1062
 
-// dbHandler contains the database connection that we use in the whole project
+// dbHandler contains the database connection that we use in the whole project.
+// db is the database connection pool that we use by initializing it via a specific driver.
 type dbHandler struct {
 	db *sql.DB
 }
 
-// messageData is the struct that we use to insert messages into database
-// timeStamp is the time that user has sent the message
-// text is user's text message
-// sender is the user's 'userName' that has sent the message
+// messageData is the struct that we use to insert messages into database.
+// timeStamp is the time that user has sent the message.
+// text is user's text message.
+// sender is the user's 'userName' that has sent the message.
 type messageData struct {
 	timeStamp time.Time
 	text      string
 	sender    string
 }
 
-// userData is the struct that we use to insert new user's data into database
-// userName is the unique identifier that we use to detect different users from each other
-// ClientID is the unique identifier that we use for 2FA and ...
-// name is the optional name that user can choose for profile
-// ip is the user's connection ip and it's for tracking user's connection and filtering stuffs
+// userData is the struct that we use to insert new user's data into database.
+// userName is the unique identifier that we use to detect different users from each other.
+// ClientID is the unique identifier that we use for 2FA and ... .
+// name is the optional name that user can choose for profile.
+// ip is the user's connection ip and it's for tracking user's connection and filtering stuffs.
 type userData struct {
 	userName string
 	clientID []byte
@@ -37,10 +38,10 @@ type userData struct {
 	ip       string
 }
 
-// createDBConnection inits a new mysql connection and returns it via a dbHandler pointer
-// And returns error if the init went wrong
-// it also pings the mysql server to ensure that the server is alive and responding
-// connString is connection string to the mysql server
+// createDBConnection inits a new mysql connection and returns it via a dbHandler pointer.
+// And returns error if the init went wrong.
+// it also pings the mysql server to ensure that the server is alive and responding.
+// connString is connection string to the mysql server.
 func createDBConnection(connString string) (*dbHandler, error) {
 
 	dbConn, err := sql.Open("mysql", connString)
@@ -55,8 +56,8 @@ func createDBConnection(connString string) (*dbHandler, error) {
 	return &dbHandler{db: dbConn}, nil
 }
 
-// getUserNameByClientID gets an ID in byte form and returns the userName of that ID
-// if something went wrong, returns the error
+// getUserNameByClientID gets an ID in byte form and returns the userName of that ID.
+// if something went wrong, returns the error.
 func (dbConn dbHandler) getUserNameByClientID(ID []byte) (string, error) {
 
 	row := dbConn.db.QueryRow(
@@ -70,8 +71,8 @@ func (dbConn dbHandler) getUserNameByClientID(ID []byte) (string, error) {
 	return username, nil
 }
 
-// checkClientID checks whether the ID exists in the database or not
-// returns True if exists and False if not, error if something went wrong
+// checkClientID checks whether the ID exists in the database or not.
+// returns True if exists and False if not, error if something went wrong.
 func (dbConn dbHandler) checkClientID(ID []byte) (bool, error) {
 
 	row := dbConn.db.QueryRow(
@@ -85,8 +86,8 @@ func (dbConn dbHandler) checkClientID(ID []byte) (bool, error) {
 	return result, nil
 }
 
-// checkClientUserName checks whether the userName exists in the database or not
-// returns True if exists and False if not, error if something went wrong
+// checkClientUserName checks whether the userName exists in the database or not.
+// returns True if exists and False if not, error if something went wrong.
 func (dbConn dbHandler) checkClientUserName(userName string) (bool, error) {
 
 	row := dbConn.db.QueryRow(
@@ -100,8 +101,8 @@ func (dbConn dbHandler) checkClientUserName(userName string) (bool, error) {
 	return result, nil
 }
 
-// insertMessage inserts a messageData into the given table
-// returns error if something went wrong
+// insertMessage inserts a messageData into the given table.
+// returns error if something went wrong.
 func (dbConn dbHandler) insertMessage(table string, message messageData) error {
 
 	_, err := dbConn.db.Exec("INSERT INTO "+table+" VALUE (?, ?, ?)",
@@ -113,8 +114,8 @@ func (dbConn dbHandler) insertMessage(table string, message messageData) error {
 	return nil
 }
 
-// getMessages gets all the messageData from the given table and returns them as a slice
-// returns error if something went wrong
+// getMessages gets all the messageData from the given table and returns them as a slice.
+// returns error if something went wrong.
 func (dbConn dbHandler) getMessages(table string) ([]messageData, error) {
 
 	rows, err := dbConn.db.Query("SELECT * FROM " + table)
@@ -141,8 +142,8 @@ func (dbConn dbHandler) getMessages(table string) ([]messageData, error) {
 	return result, nil
 }
 
-// deleteMessage deletes given message from the given table
-// returns error if something went wrong
+// deleteMessage deletes given message from the given table.
+// returns error if something went wrong.
 func (dbConn dbHandler) deleteMessage(table string, message messageData) error {
 
 	_, err := dbConn.db.Exec("DELETE FROM "+
@@ -155,8 +156,8 @@ func (dbConn dbHandler) deleteMessage(table string, message messageData) error {
 	return nil
 }
 
-// insertUserAndCreateTable inserts a userData into the database and also creates a table with the given table name
-// returns error if something went wrong
+// insertUserAndCreateTable inserts a userData into the database and also creates a table with the given table name.
+// returns error if something went wrong.
 func (dbConn dbHandler) insertUserAndCreateTable(user userData, table string) error {
 
 	tx, err := dbConn.db.Begin()
@@ -182,8 +183,8 @@ func (dbConn dbHandler) insertUserAndCreateTable(user userData, table string) er
 	return tx.Commit()
 }
 
-// changeIP changes the ip of the given userName by the given ip
-// returns error if something went wrong
+// changeIP changes the ip of the given userName by the given ip.
+// returns error if something went wrong.
 func (dbConn dbHandler) changeIP(userName string, ip string) error {
 
 	_, err := dbConn.db.Exec("UPDATE tbl_users SET ip = ? WHERE userName = ?",
@@ -195,10 +196,10 @@ func (dbConn dbHandler) changeIP(userName string, ip string) error {
 	return nil
 }
 
-// deleteUserAndTable deletes both user record from tbl_users and the table of user
-// this does it with two execution one by one
-// this should be an atomic job and do both executions at once
-// returns error if one of the executions went wrong
+// deleteUserAndTable deletes both user record from tbl_users and the table of user.
+// this does it with two execution one by one.
+// this should be an atomic job and do both executions at once.
+// returns error if one of the executions went wrong.
 func (dbConn dbHandler) deleteUserAndTable(user string) error {
 
 	tx, err := dbConn.db.Begin()
@@ -221,8 +222,8 @@ func (dbConn dbHandler) deleteUserAndTable(user string) error {
 	return tx.Commit()
 }
 
-// ping simply pings the mysql service provider and returns error if no answer
-// if we got error then it means that mysql is not alive and responding
+// ping simply pings the mysql service provider and returns error if no answer.
+// if we got error then it means that mysql is not alive and responding.
 func (dbConn dbHandler) ping() error {
 
 	err := dbConn.db.Ping()

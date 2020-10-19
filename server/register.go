@@ -10,8 +10,8 @@ import (
 	"strings"
 )
 
-// register is a controller pointer method that handles registration process
-// it gets a websocket connection pointer as the incoming user who wants to register
+// register is a controller pointer method that handles registration process.
+// it gets a websocket connection pointer as the incoming user who wants to register.
 func (c *controller) register(conn *websocket.Conn) {
 
 	var data []byte
@@ -101,9 +101,9 @@ func (c *controller) register(conn *websocket.Conn) {
 	_ = conn.Close()
 }
 
-// validateRegistration validates a registration in terms of data appearance
-// it gets a registration to validate
-// it returns True if everything went alright and False if not
+// validateRegistration validates a registration in terms of data appearance.
+// it gets a registration to validate.
+// it returns True if everything went alright and False if not.
 func validateRegistration(reg registration) bool {
 
 	emptyHash := sha1.New()

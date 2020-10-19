@@ -6,8 +6,8 @@ import (
 	"net/http"
 )
 
-// everything starts from here
-// database connection, controller, servers mux, mux handlers and finally server starts to listen
+// everything starts from here.
+// database connection, controller, servers mux, mux handlers and finally server starts to listen.
 func main() {
 
 	defer fmt.Println("Server stopped working!")
