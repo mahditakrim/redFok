@@ -24,34 +24,21 @@ func main() {
 	gate := &processGate{isGateOpen: true}
 	go func() { gate.dbConnWatcher(controller) }()
 
-	mux.Handle("/messaging", websocket.Handler(
+	mux.Handle("/api/", websocket.Handler(
 		func(conn *websocket.Conn) {
 			if !gate.pGateCheck() {
 				_ = conn.Close()
 				return
 			}
 
-			controller.messenger(conn)
-		}))
-
-	mux.Handle("/registration", websocket.Handler(
-		func(conn *websocket.Conn) {
-			if !gate.pGateCheck() {
-				_ = conn.Close()
-				return
+			switch conn.Request().RequestURI {
+			case "/api/messaging":
+				controller.messenger(conn)
+			case "/api/registration":
+				controller.register(conn)
+			case "/api/deletion":
+				controller.deleter(conn)
 			}
-
-			controller.register(conn)
-		}))
-
-	mux.Handle("/deletion", websocket.Handler(
-		func(conn *websocket.Conn) {
-			if !gate.pGateCheck() {
-				_ = conn.Close()
-				return
-			}
-
-			controller.deleter(conn)
 		}))
 
 	server := http.Server{

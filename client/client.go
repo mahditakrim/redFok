@@ -16,7 +16,6 @@ import (
 type sendMessage struct {
 	TimeStamp time.Time `json:"timeStamp"`
 	Text      string    `json:"text"`
-	Sender    string    `json:"sender"`
 	To        []string  `json:"To"`
 }
 
@@ -80,7 +79,7 @@ func deletion() {
 	scanner.Scan()
 	userName = scanner.Text()
 
-	conn, err := websocket.Dial("ws://localhost:13013/deletion", "", "http://test")
+	conn, err := websocket.Dial("ws://localhost:13013/api/deletion", "", "http://test")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -118,7 +117,7 @@ func registering() {
 	scanner.Scan()
 	name := scanner.Text()
 
-	conn, err := websocket.Dial("ws://localhost:13013/registration", "", "http://test")
+	conn, err := websocket.Dial("ws://localhost:13013/api/registration", "", "http://test")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -159,7 +158,7 @@ func messaging() {
 	_, _ = fmt.Scan(&allUsers)
 	users = strings.Split(allUsers, "-")
 
-	conn, err := websocket.Dial("ws://localhost:13013/messaging", "", "http://test")
+	conn, err := websocket.Dial("ws://localhost:13013/api/messaging", "", "http://test")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -231,7 +230,6 @@ func sending(conn *websocket.Conn) {
 		err := websocket.JSON.Send(conn, sendMessage{
 			TimeStamp: time.Now(),
 			Text:      text,
-			Sender:    userName,
 			To:        users,
 		})
 		if err != nil {
