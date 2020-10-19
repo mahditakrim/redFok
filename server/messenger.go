@@ -79,7 +79,7 @@ func (c *controller) runReceiver(conn *websocket.Conn, userName string) {
 			return
 		}
 
-		go c.messageHandler(message, conn)
+		go c.messageHandler(message, conn, userName)
 	}
 }
 
@@ -88,8 +88,7 @@ func (c *controller) runReceiver(conn *websocket.Conn, userName string) {
 // it returns True if everything wend alright and False if not.
 func messageValidator(message *clientSendMessage) bool {
 
-	if message.Sender == "" || message.TimeStamp.String() == "" ||
-		message.To == nil {
+	if message.TimeStamp.String() == "" || message.To == nil {
 		return false
 	}
 
@@ -110,15 +109,16 @@ func messageValidator(message *clientSendMessage) bool {
 // messageHandler is a controller pointer method that handles every single clientSendMessage that runReceiver receives.
 // it gets a clientSendMessage fro processing.
 // it gets a websocket connection pointer as the user who has sent the message.
-func (c *controller) messageHandler(message clientSendMessage, conn *websocket.Conn) {
+// it gets the userName of the incoming websocket connection
+func (c *controller) messageHandler(message clientSendMessage, conn *websocket.Conn, userName string) {
 
 	if !messageValidator(&message) {
 		return
 	}
 
 	for _, user := range message.To {
-		if user == message.Sender {
-			c.removeAndCloseOnlineClient(conn, message.Sender)
+		if user == userName {
+			c.removeAndCloseOnlineClient(conn, userName)
 			return
 		}
 	}
@@ -127,47 +127,47 @@ func (c *controller) messageHandler(message clientSendMessage, conn *websocket.C
 		isClientExist, err := c.dbConn.checkClientUserName(user)
 		if err != nil {
 			logError("messageHandler-checkClientUserName", err)
-			c.removeAndCloseOnlineClient(conn, message.Sender)
+			c.removeAndCloseOnlineClient(conn, userName)
 			return
 		}
 		if !isClientExist {
-			if c.checkIsClientOnline(message.Sender) {
+			if c.checkIsClientOnline(userName) {
 				err = responseSender(conn, noSuchUser)
 				if err != nil {
 					logError("messageHandler-responseSender", err)
-					c.removeAndCloseOnlineClient(conn, message.Sender)
+					c.removeAndCloseOnlineClient(conn, userName)
 				}
 			}
 
 			continue
 		}
 
-		go func(user string) {
+		go func() {
 			if c.checkIsClientOnline(user) {
 				c.deliverMessage(c.onlineClients.clients[user], user, clientReceiveMessage{
 					TimeStamp: message.TimeStamp,
 					Text:      message.Text,
-					Sender:    message.Sender,
+					Sender:    userName,
 				})
 
 			} else {
 				err := c.dbConn.insertMessage("tbl_"+user, messageData{
 					timeStamp: message.TimeStamp,
 					text:      message.Text,
-					sender:    message.Sender,
+					sender:    userName,
 				})
 				if err != nil {
 					logError("messageHandler-insertMessage", err)
-					c.removeAndCloseOnlineClient(conn, message.Sender)
+					c.removeAndCloseOnlineClient(conn, userName)
 				}
 			}
-		}(user)
+		}()
 
-		if c.checkIsClientOnline(message.Sender) {
+		if c.checkIsClientOnline(userName) {
 			err = responseSender(conn, received)
 			if err != nil {
 				logError("messageHandler-responseSender", err)
-				c.removeAndCloseOnlineClient(conn, message.Sender)
+				c.removeAndCloseOnlineClient(conn, userName)
 			}
 		}
 	}
