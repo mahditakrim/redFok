@@ -18,7 +18,7 @@ func (c *controller) deleter(conn *websocket.Conn) {
 	err := c.dbConn.deleteUserAndTable(userName)
 	if err != nil {
 		logError("deleter-deleteUserAndTable", err)
-		c.removeAndCloseOnlineClient(conn, userName)
+		c.removeAndCloseOnlineClient(userName)
 		return
 	}
 
@@ -27,7 +27,7 @@ func (c *controller) deleter(conn *websocket.Conn) {
 		logError("deleter-responseSender", err)
 	}
 
-	c.removeAndCloseOnlineClient(conn, userName)
+	c.removeAndCloseOnlineClient(userName)
 
 	go playBeep()
 	fmt.Println(userName, " deleted")

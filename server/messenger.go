@@ -21,7 +21,7 @@ func (c *controller) messenger(conn *websocket.Conn) {
 	err := responseSender(conn, approved)
 	if err != nil {
 		logError("messenger-responseSender", err)
-		c.removeAndCloseOnlineClient(conn, userName)
+		c.removeAndCloseOnlineClient(userName)
 		return
 	}
 
@@ -29,17 +29,17 @@ func (c *controller) messenger(conn *websocket.Conn) {
 	err = c.dbConn.changeIP(userName, ip)
 	if err != nil {
 		logError("messenger-changeIP", err)
-		c.removeAndCloseOnlineClient(conn, userName)
+		c.removeAndCloseOnlineClient(userName)
 		return
 	}
 
-	messages := c.checkUnseenMessages(userName, conn)
+	messages := c.checkUnseenMessages(userName)
 	if messages != nil {
 		for _, message := range messages {
 			err := c.dbConn.deleteMessage("tbl_"+userName, message)
 			if err != nil {
 				logError("messenger-deleteMessage", err)
-				c.removeAndCloseOnlineClient(conn, userName)
+				c.removeAndCloseOnlineClient(userName)
 				return
 			}
 
@@ -67,7 +67,7 @@ func (c *controller) runReceiver(conn *websocket.Conn, userName string) {
 		if err != nil {
 			if c.checkIsClientOnline(userName) {
 				logError("runReceiver-Receive", err)
-				c.removeAndCloseOnlineClient(conn, userName)
+				c.removeAndCloseOnlineClient(userName)
 			}
 			return
 		}
@@ -75,7 +75,7 @@ func (c *controller) runReceiver(conn *websocket.Conn, userName string) {
 		err = json.Unmarshal(data, &message)
 		if err != nil {
 			logError("runReceiver-Unmarshal", err)
-			c.removeAndCloseOnlineClient(conn, userName)
+			c.removeAndCloseOnlineClient(userName)
 			return
 		}
 
@@ -118,7 +118,7 @@ func (c *controller) messageHandler(message clientSendMessage, conn *websocket.C
 
 	for _, user := range message.To {
 		if user == userName {
-			c.removeAndCloseOnlineClient(conn, userName)
+			c.removeAndCloseOnlineClient(userName)
 			return
 		}
 	}
@@ -127,7 +127,7 @@ func (c *controller) messageHandler(message clientSendMessage, conn *websocket.C
 		isClientExist, err := c.dbConn.checkClientUserName(user)
 		if err != nil {
 			logError("messageHandler-checkClientUserName", err)
-			c.removeAndCloseOnlineClient(conn, userName)
+			c.removeAndCloseOnlineClient(userName)
 			return
 		}
 		if !isClientExist {
@@ -135,7 +135,7 @@ func (c *controller) messageHandler(message clientSendMessage, conn *websocket.C
 				err = responseSender(conn, noSuchUser)
 				if err != nil {
 					logError("messageHandler-responseSender", err)
-					c.removeAndCloseOnlineClient(conn, userName)
+					c.removeAndCloseOnlineClient(userName)
 				}
 			}
 
@@ -158,7 +158,7 @@ func (c *controller) messageHandler(message clientSendMessage, conn *websocket.C
 				})
 				if err != nil {
 					logError("messageHandler-insertMessage", err)
-					c.removeAndCloseOnlineClient(conn, userName)
+					c.removeAndCloseOnlineClient(userName)
 				}
 			}
 		}(user)
@@ -167,7 +167,7 @@ func (c *controller) messageHandler(message clientSendMessage, conn *websocket.C
 			err = responseSender(conn, received)
 			if err != nil {
 				logError("messageHandler-responseSender", err)
-				c.removeAndCloseOnlineClient(conn, userName)
+				c.removeAndCloseOnlineClient(userName)
 			}
 		}
 	}
@@ -189,22 +189,22 @@ func (c *controller) deliverMessage(userName string, message clientReceiveMessag
 			logError("deliverMessage-insertMessage", err)
 		}
 
-		c.removeAndCloseOnlineClient(conn, userName)
+		c.removeAndCloseOnlineClient(userName)
 
 		logError("deliverMessage", err)
 	}
 }
 
 // checkUnseenMessages is a controller pointer method that checks whether userName has unseen messages.
-// it gets a websocket connection pointer and a userName as user info to check.
+// it gets a userName as user info to check.
 // it returns a slice of messageData as the unseen messages.
 // returns nil if there is no unseen message in the database.
-func (c *controller) checkUnseenMessages(userName string, conn *websocket.Conn) []messageData {
+func (c *controller) checkUnseenMessages(userName string) []messageData {
 
 	messages, err := c.dbConn.getMessages("tbl_" + userName)
 	if err != nil {
 		logError("checkUnseenMessages", err)
-		c.removeAndCloseOnlineClient(conn, userName)
+		c.removeAndCloseOnlineClient(userName)
 	}
 
 	return messages

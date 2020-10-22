@@ -49,11 +49,11 @@ func (c *controller) addOnlineClient(conn *websocket.Conn, userName string) {
 
 // removeAndCloseOnlineClient is a controller method that removes and also closes the client from onlineClients map.
 // it tries to close the websocket connection whether its already close or not.
-// it gets a websocket connection for closing and the userName as the key for delete.
-func (c *controller) removeAndCloseOnlineClient(conn *websocket.Conn, userName string) {
+func (c *controller) removeAndCloseOnlineClient(userName string) {
 
 	c.onlineClients.mapLock.Lock()
 	defer c.onlineClients.mapLock.Unlock()
+	conn := c.getWebsocketConnection(userName)
 	delete(c.onlineClients.clients, userName)
 	_ = conn.Close()
 	fmt.Println("online clients = ", len(c.onlineClients.clients))
