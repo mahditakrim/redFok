@@ -26,6 +26,7 @@ func main() {
 
 	mux.Handle("/api/", websocket.Handler(
 		func(conn *websocket.Conn) {
+
 			if !gate.pGateCheck() {
 				_ = conn.Close()
 				return

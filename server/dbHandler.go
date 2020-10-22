@@ -157,7 +157,9 @@ func (dbConn dbHandler) deleteMessage(table string, message messageData) error {
 }
 
 // insertUserAndCreateTable inserts a userData into the database and also creates a table with the given table name.
-// returns error if something went wrong.
+// this does it with two execution in a transaction.
+// if one of the executions got error then the transaction will rollback.
+// returns error if one of the executions went wrong.
 func (dbConn dbHandler) insertUserAndCreateTable(user userData, table string) error {
 
 	tx, err := dbConn.db.Begin()
@@ -197,8 +199,8 @@ func (dbConn dbHandler) changeIP(userName string, ip string) error {
 }
 
 // deleteUserAndTable deletes both user record from tbl_users and the table of user.
-// this does it with two execution one by one.
-// this should be an atomic job and do both executions at once.
+// this does it with two execution in a transaction.
+// if one of the executions got error then the transaction will rollback.
 // returns error if one of the executions went wrong.
 func (dbConn dbHandler) deleteUserAndTable(user string) error {
 

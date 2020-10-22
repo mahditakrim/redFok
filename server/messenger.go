@@ -177,8 +177,7 @@ func (c *controller) messageHandler(message clientSendMessage, conn *websocket.C
 // it gets a websocket connection pointer and a userName as the users info for sending the message to.
 func (c *controller) deliverMessage(userName string, message clientReceiveMessage) {
 
-	conn := c.getWebsocketConnection(userName)
-	err := websocket.JSON.Send(conn, message)
+	err := websocket.JSON.Send(c.getWebsocketConnection(userName), message)
 	if err != nil {
 		err := c.dbConn.insertMessage("tbl_"+userName, messageData{
 			timeStamp: message.TimeStamp,
