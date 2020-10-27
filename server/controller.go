@@ -51,11 +51,13 @@ func (c *controller) addOnlineClient(conn *websocket.Conn, userName string) {
 // it tries to close the websocket connection whether its already close or not.
 func (c *controller) removeAndCloseOnlineClient(userName string) {
 
+	conn := c.getWebsocketConnection(userName)
 	c.onlineClients.mapLock.Lock()
 	defer c.onlineClients.mapLock.Unlock()
-	conn := c.getWebsocketConnection(userName)
 	delete(c.onlineClients.clients, userName)
-	_ = conn.Close()
+	if conn != nil {
+		_ = conn.Close()
+	}
 	fmt.Println("online clients = ", len(c.onlineClients.clients))
 }
 
@@ -89,32 +91,35 @@ func validateAuthentication(auth authentication) bool {
 // it returns the client's userName if authentication went alright and returns an empty string if not.
 func (c *controller) checkAuthentication(conn *websocket.Conn) string {
 
+	defer func() {
+		if r := recover(); r != nil {
+			logError(r.(errScope).scope, r.(errScope).err)
+		}
+	}()
+
 	var data []byte
 	err := websocket.Message.Receive(conn, &data)
 	if err != nil {
-		logError("checkAuthentication-Receive", err)
-		return ""
+		panic(errScope{scope: "checkAuthentication-Receive", err: err})
 	}
 	var auth authentication
 	err = json.Unmarshal(data, &auth)
 	if err != nil {
-		logError("checkAuthentication-Unmarshal", err)
-		return ""
+		panic(errScope{scope: "checkAuthentication-Unmarshal", err: err})
 	}
 
 	if !validateAuthentication(auth) {
 		return ""
 	}
 
-	isExisted, err := c.dbConn.checkClientID(auth.ClientID)
+	isClientExist, err := c.dbConn.checkClientID(auth.ClientID)
 	if err != nil {
-		logError("checkAuthentication-checkClientID", err)
-		return ""
+		panic(errScope{scope: "checkAuthentication-checkClientID", err: err})
 	}
-	if !isExisted {
+	if !isClientExist {
 		err := responseSender(conn, invalidAuth)
 		if err != nil {
-			logError("checkAuthentication-isExisted", err)
+			panic(errScope{scope: "checkAuthentication-responseSender", err: err})
 		}
 
 		return ""
@@ -122,13 +127,12 @@ func (c *controller) checkAuthentication(conn *websocket.Conn) string {
 
 	result, err := c.dbConn.getUserNameByClientID(auth.ClientID)
 	if err != nil {
-		logError("checkAuthentication-getUserNameByClientID", err)
-		return ""
+		panic(errScope{scope: "checkAuthentication-getUserNameByClientID", err: err})
 	}
 	if result != auth.UserName {
-		err := responseSender(conn, invalidAuth)
+		err = responseSender(conn, invalidAuth)
 		if err != nil {
-			logError("checkAuthentication-responseSender", err)
+			panic(errScope{scope: "checkAuthentication-responseSender", err: err})
 		}
 
 		return ""

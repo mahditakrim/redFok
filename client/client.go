@@ -65,9 +65,8 @@ func main() {
 }
 
 func test() {
-	defer fmt.Println("this is defer")
-	fmt.Println("we go")
-	log.Fatalln("fatal")
+
+	fmt.Println("Test")
 }
 
 func deletion() {
@@ -183,12 +182,26 @@ func messaging() {
 	fmt.Println(res)
 
 	if res.Value == "APV" {
-		go receiving(conn)
-		sending(conn)
+		var sendNum, receiveNum int
+
+		go func() {
+			scanner := bufio.NewScanner(os.Stdin)
+			for scanner.Scan() {
+				if scanner.Text() == "exit" {
+					fmt.Println("Number of send: ", sendNum)
+					fmt.Println("Number of receive: ", receiveNum)
+					os.Exit(0)
+				}
+			}
+		}()
+
+		go receiving(conn, &receiveNum)
+
+		sending(conn, &sendNum)
 	}
 }
 
-func receiving(conn *websocket.Conn) {
+func receiving(conn *websocket.Conn, num *int) {
 
 	fmt.Println("Receiving started . . .")
 
@@ -212,13 +225,14 @@ func receiving(conn *websocket.Conn) {
 			}
 			rec.TimeStamp = rec.TimeStamp.In(time.Local)
 			fmt.Println(rec)
+			*num++
 			continue
 		}
 		fmt.Println(res)
 	}
 }
 
-func sending(conn *websocket.Conn) {
+func sending(conn *websocket.Conn, num *int) {
 
 	fmt.Println("Sending started . . .")
 
@@ -235,5 +249,7 @@ func sending(conn *websocket.Conn) {
 		if err != nil {
 			fmt.Println("Error in Send Data, ", err)
 		}
+
+		*num++
 	}
 }

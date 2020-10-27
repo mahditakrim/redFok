@@ -14,19 +14,22 @@ import (
 // it gets a websocket connection pointer as the incoming user who wants to register.
 func (c *controller) register(conn *websocket.Conn) {
 
+	defer func() {
+		if r := recover(); r != nil {
+			logError(r.(errScope).scope, r.(errScope).err)
+			_ = conn.Close()
+		}
+	}()
+
 	var data []byte
 	err := websocket.Message.Receive(conn, &data)
 	if err != nil {
-		logError("register-Receive", err)
-		_ = conn.Close()
-		return
+		panic(errScope{scope: "register-Receive", err: err})
 	}
 	var reg registration
 	err = json.Unmarshal(data, &reg)
 	if err != nil {
-		logError("register-Unmarshal", err)
-		_ = conn.Close()
-		return
+		panic(errScope{scope: "register-Unmarshal", err: err})
 	}
 
 	if !validateRegistration(reg) {
@@ -36,14 +39,12 @@ func (c *controller) register(conn *websocket.Conn) {
 
 	isClientExist, err := c.dbConn.checkClientID(reg.ClientID)
 	if err != nil {
-		logError("register-checkClientID", err)
-		_ = conn.Close()
-		return
+		panic(errScope{scope: "register-checkClientID", err: err})
 	}
 	if isClientExist {
-		err := responseSender(conn, alreadyReg)
+		err = responseSender(conn, alreadyReg)
 		if err != nil {
-			logError("register-responseSender", err)
+			panic(errScope{scope: "register-responseSender", err: err})
 		}
 
 		_ = conn.Close()
@@ -52,14 +53,12 @@ func (c *controller) register(conn *websocket.Conn) {
 
 	isUserNameInValid, err := c.dbConn.checkClientUserName(reg.UserName)
 	if err != nil {
-		logError("register-checkClientUserName", err)
-		_ = conn.Close()
-		return
+		panic(errScope{scope: "register-checkClientUserName", err: err})
 	}
 	if isUserNameInValid {
 		err = responseSender(conn, invalidUserName)
 		if err != nil {
-			logError("register-responseSender", err)
+			panic(errScope{scope: "register-invalid-responseSender", err: err})
 		}
 
 		_ = conn.Close()
@@ -77,23 +76,19 @@ func (c *controller) register(conn *websocket.Conn) {
 		if err.(*mysql.MySQLError).Number == duplicateErr {
 			err = responseSender(conn, invalidUserName)
 			if err != nil {
-				logError("register-isDuplicateError-responseSender", err)
+				panic(errScope{scope: "register-duplicate-responseSender", err: err})
 			}
 
 			_ = conn.Close()
 			return
 		}
 
-		logError("register-insertUserAndCreateTable", err)
-		_ = conn.Close()
-		return
+		panic(errScope{scope: "register-insertUserAndCreateTable", err: err})
 	}
 
 	err = responseSender(conn, approved)
 	if err != nil {
-		logError("register-responseSender", err)
-		_ = conn.Close()
-		return
+		panic(errScope{scope: "register-approved-responseSender", err: err})
 	}
 
 	go playBeep()

@@ -35,8 +35,10 @@ func main() {
 			switch conn.Request().RequestURI {
 			case "/api/messaging":
 				controller.messenger(conn)
+
 			case "/api/registration":
 				controller.register(conn)
+
 			case "/api/deletion":
 				controller.deleter(conn)
 			}

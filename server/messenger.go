@@ -18,29 +18,30 @@ func (c *controller) messenger(conn *websocket.Conn) {
 
 	c.addOnlineClient(conn, userName)
 
+	defer func() {
+		if r := recover(); r != nil {
+			logError(r.(errScope).scope, r.(errScope).err)
+			c.removeAndCloseOnlineClient(userName)
+		}
+	}()
+
 	err := responseSender(conn, approved)
 	if err != nil {
-		logError("messenger-responseSender", err)
-		c.removeAndCloseOnlineClient(userName)
-		return
+		panic(errScope{scope: "messenger-responseSender", err: err})
 	}
 
 	ip := conn.Request().RemoteAddr[:strings.IndexByte(conn.Request().RemoteAddr, ':')]
 	err = c.dbConn.changeIP(userName, ip)
 	if err != nil {
-		logError("messenger-changeIP", err)
-		c.removeAndCloseOnlineClient(userName)
-		return
+		panic(errScope{scope: "messenger-changeIP", err: err})
 	}
 
 	messages := c.checkUnseenMessages(userName)
 	if messages != nil {
 		for _, message := range messages {
-			err := c.dbConn.deleteMessage("tbl_"+userName, message)
+			err = c.dbConn.deleteMessage("tbl_"+userName, message)
 			if err != nil {
-				logError("messenger-deleteMessage", err)
-				c.removeAndCloseOnlineClient(userName)
-				return
+				panic(errScope{scope: "messenger-deleteMessage", err: err})
 			}
 
 			go func(message messageData) {
